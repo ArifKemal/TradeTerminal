@@ -1,5 +1,5 @@
 # ==========================================
-# Terminal.AI — Monorepo .gitignore
+# TradeTerminal — Monorepo .gitignore
 # ==========================================
 
 # --- OS & Editor ---
@@ -47,11 +47,9 @@ dist/
 build/
 *.tar.gz
 
-# --- Docker (artık kullanılmıyor, arşivde) ---
-# docker-compose.yml
-# nginx/
-# deploy.sh
-# setup-ssl.sh
+# --- Markdown (sadece README.md commitli) ---
+*.md
+!README.md
 
 # --- Misc ---
 *.bak
