@@ -1,7 +1,7 @@
-# Terminal.AI — VectorBT Finansal Backtest Terminali
+# TradeTerminal — VectorBT Finansal Backtest Terminali
 
 ## Proje Özeti
-VectorBT kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan (dark theme, monospaced estetiği) bir finansal backtest ve analiz platformu. Kullanıcıların teknik göstergeleri (SMA, RSI, MACD) test etmesine ve sonuçları interaktif grafiklerle görmesine olanak tanır. "Terminal.AI" markası altında siyah zemin üzerine beyaz/turuncu aksanlarla kurgulanmıştır. Opsiyon akışı modülüyle LEAPS ve anormal opsiyon aktivitelerini izleme desteği mevcuttur.
+VectorBT kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan (dark theme, monospaced estetiği) bir finansal backtest ve analiz platformu. Kullanıcıların teknik göstergeleri (SMA, RSI, MACD) test etmesine ve sonuçları interaktif grafiklerle görmesine olanak tanır. "TradeTerminal" markası altında siyah zemin üzerine beyaz/turuncu aksanlarla kurgulanmıştır. Opsiyon akışı modülüyle LEAPS ve anormal opsiyon aktivitelerini izleme desteği mevcuttur.
 
 ## Teknik Mimari
 
@@ -57,7 +57,7 @@ HERMES(deneme)/
     │       ├── ComparePanel.tsx      # Strateji karşılaştırma
     │       ├── FundamentalsPanel.tsx # Şirket çarpanları
     │       ├── OptionsFlowPanel.tsx  # Opsiyon akışı detay
-    │       └── TerminalHeader.tsx    # Terminal.AI başlık
+    │       └── TerminalHeader.tsx    # TradeTerminal başlık
     ├── AGENTS.md             # Next.js uyarısı
     ├── CLAUDE.md             # AGENTS.md referansı
     └── package.json          # Node.js bağımlılıkları
@@ -112,7 +112,7 @@ HERMES(deneme)/
 - [x] Ticker değişince otomatik fundamentals + tarih aralığı (800ms debounce)
 - [x] Options Flow modülü (tek hisse detay + LEAPS board + S&P 100 scanner)
 - [x] Options sekmesi (LEAPS Scanner tablosu + per-ticker options flow)
-- [x] Dark tema (Terminal.AI markası)
+- [x] Dark tema (TradeTerminal markası)
 - [x] yfinance 1.3.0'a yükseltildi (curl_cffi tabanlı)
 - [x] Backend + Frontend birlikte çalışıyor
 

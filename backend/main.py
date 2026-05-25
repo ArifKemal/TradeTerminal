@@ -1,5 +1,5 @@
 """
-Terminal.AI - VectorBT Financial Analysis Backend
+TradeTerminal - VectorBT Financial Analysis Backend
 FastAPI server providing backtesting and technical analysis endpoints.
 """
 
@@ -25,7 +25,7 @@ from leaps_scanner import scan_all_sp100_leaps
 from encoder import safe_json_response
 
 app = FastAPI(
-    title="Terminal.AI",
+    title="TradeTerminal",
     description="VectorBT-based financial backtesting and analysis platform",
     version="1.1.0"
 )

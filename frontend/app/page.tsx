@@ -250,7 +250,7 @@ export default function Home() {
               {!isLoading && !isComparing && !result && !compareResult && !error && (
                 <div className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-12 text-center">
                   <div className="text-[var(--text-muted)] text-4xl mb-4">{">"}_</div>
-                  <div className="text-[var(--text-secondary)] text-sm mb-2">Terminal.AI Ready</div>
+                  <div className="text-[var(--text-secondary)] text-sm mb-2">TradeTerminal Ready</div>
                   <div className="text-[var(--text-muted)] text-xs">
                     Configure parameters and execute a backtest to begin analysis
                   </div>
@@ -539,7 +539,7 @@ export default function Home() {
 
       <footer className="border-t border-[var(--border-color)] bg-[var(--bg-secondary)] px-6 py-3">
         <div className="max-w-[1600px] mx-auto flex items-center justify-between text-xs text-[var(--text-muted)]">
-          <span>Terminal.AI v1.1.0 — Powered by VectorBT + FastAPI + Next.js</span>
+          <span>TradeTerminal v1.1.0 — Powered by VectorBT + FastAPI + Next.js</span>
           <span>Data: Yahoo Finance (yfinance)</span>
         </div>
       </footer>

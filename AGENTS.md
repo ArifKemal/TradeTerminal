@@ -1,7 +1,7 @@
-# Terminal.AI — VectorBT Finansal Backtest Terminali
+# TradeTerminal — VectorBT Finansal Backtest Terminali
 
 ## Proje Özeti
-VectorBT kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan (dark theme, monospaced estetiği) bir finansal backtest ve analiz platformu. "Terminal.AI" markası altında siyah zemin üzerine beyaz/turuncu aksanlarla kurgulanmıştır. Opsiyon akışı (options flow) modülüyle LEAPS ve anormal opsiyon aktivitelerini izleme desteği mevcuttur.
+VectorBT kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan (dark theme, monospaced estetiği) bir finansal backtest ve analiz platformu. "TradeTerminal" markası altında siyah zemin üzerine beyaz/turuncu aksanlarla kurgulanmıştır. Opsiyon akışı (options flow) modülüyle LEAPS ve anormal opsiyon aktivitelerini izleme desteği mevcuttur.
 
 ## Teknik Mimari
 
@@ -92,7 +92,7 @@ HERMES(deneme)/
 - [x] "All Time" butonu ile full range seçimi
 - [x] Equity curve, pan/zoom modebar
 - [x] 10dk backend cache (rate limit koruması)
-- [x] Dark tema (Terminal.AI — siyah+turuncu)
+- [x] Dark tema (TradeTerminal — siyah+turuncu)
 - [x] **Options Flow modülü** — `options_flow.py` (yfinance tabanlı, tek hisse detay)
 - [x] **LEAPS Scanner** — `leaps_scanner.py` (S&P 100 concurrent, ~10s)
 - [x] **Options sekmesi** — Frontend'te LEAPS Scanner tablosu + per-ticker options flow

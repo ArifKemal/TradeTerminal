@@ -1,16 +1,16 @@
 <div align="center">
 
-# ⚡ Terminal.AI
+# ⚡ TradeTerminal
 
 **VectorBT Finansal Backtest + LEAPS Opsiyon Scanner**
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)](https://nextjs.org/)
+[Demo](https://tradeterminal.vercel.app) · [Hataları Bildir](https://github.com/ArifKemal/TradeTerminal/issues) · [Özellik İste](https://github.com/ArifKemal/TradeTerminal/issues)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green?logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)](https://python.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
-[Demo](https://terminal-ai.vercel.app) · [Hataları Bildir](https://github.com/username/terminal-ai/issues) · [Özellik İste](https://github.com/username/terminal-ai/issues)
+[Demo](https://tradeterminal.vercel.app) · [Hataları Bildir](https://github.com/ArifKemal/TradeTerminal/issues) · [Özellik İste](https://github.com/ArifKemal/TradeTerminal/issues)
 
 </div>
 
@@ -18,7 +18,7 @@
 
 ## 📖 Hakkında
 
-Terminal.AI, **VectorBT** kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan bir **finansal backtest ve opsiyon analiz platformudur**. Siyah zemin üzerine turuncu aksanlarla kurgulanmış terminal estetiğiyle, teknik göstergeleri test etmenizi ve sonuçları interaktif grafiklerle görmenizi sağlar.
+TradeTerminal, **VectorBT** kütüphanesini temel alan, profesyonel trading terminallerinden ilham alan bir **finansal backtest ve opsiyon analiz platformudur**. Siyah zemin üzerine turuncu aksanlarla kurgulanmış terminal estetiğiyle, teknik göstergeleri test etmenizi ve sonuçları interaktif grafiklerle görmenizi sağlar.
 
 ### Temel Özellikler
 
@@ -71,7 +71,7 @@ Bu proje **monorepo** yapısında olup **PaaS (Platform as a Service)** mimarisi
 ## 📁 Klasör Yapısı
 
 ```
-terminal-ai/
+tradeterminal/
 ├── frontend/                    # Next.js Frontend
 │   ├── app/
 │   │   ├── page.tsx             # Ana sayfa (Backtest / Compare / Options)
@@ -153,8 +153,8 @@ terminal-ai/
 
 | Değişken | Servis | Açıklama |
 |-----------|--------|----------|
-| `NEXT_PUBLIC_API_URL` | Frontend | Backend URL'si (örn: `https://terminal-ai-api.onrender.com`) |
-| `FRONTEND_URL` | Backend | Frontend URL'si (CORS için, örn: `https://terminal-ai.vercel.app`) |
+| `NEXT_PUBLIC_API_URL` | Frontend | Backend URL'si (örn: `https://tradeterminal-api.onrender.com`) |
+| `FRONTEND_URL` | Backend | Frontend URL'si (CORS için, örn: `https://tradeterminal.vercel.app`) |
 
 ---
 
