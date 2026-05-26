@@ -1,7 +1,7 @@
 // @ts-nocheck
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import TerminalHeader from "./components/TerminalHeader";
 import BacktestForm, { type BacktestConfig } from "./components/BacktestForm";
 import PriceChart from "./components/PriceChart";
@@ -34,7 +34,62 @@ export default function Home() {
   const [leapsScanner, setLeapsScanner] = useState<LeapsScannerEntry[]>([]);
   const [leapsScannerLoading, setLeapsScannerLoading] = useState(false);
   const [leapsScannerInfo, setLeapsScannerInfo] = useState<LeapsScannerResponse["scan_info"] | null>(null);
+  const [leapsFilterTicker, setLeapsFilterTicker] = useState("");
+  const [leapsFilterSignal, setLeapsFilterSignal] = useState("all");
+  const [leapsFilterMinSpikes, setLeapsFilterMinSpikes] = useState(0);
+  const [leapsSortKey, setLeapsSortKey] = useState<string>("total_leaps_vol");
+  const [leapsSortDir, setLeapsSortDir] = useState<"asc" | "desc">("desc");
   const fundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── LEAPS Scanner: Filter + Sort ─────────────────────────────────────
+
+  const filteredLeapsScanner = useMemo(() => {
+    let data = [...leapsScanner];
+    // Filter by ticker
+    if (leapsFilterTicker.trim()) {
+      data = data.filter((e) => e.ticker.toUpperCase().includes(leapsFilterTicker.toUpperCase()));
+    }
+    // Filter by signal
+    if (leapsFilterSignal !== "all") {
+      data = data.filter((e) => {
+        const s = e.call_put_ratio > 1.5 ? "Bullish" : e.call_put_ratio < 0.67 ? "Bearish" : "Neutral";
+        return s === leapsFilterSignal;
+      });
+    }
+    // Filter by min spikes
+    if (leapsFilterMinSpikes > 0) {
+      data = data.filter((e) => e.unusual_count >= leapsFilterMinSpikes);
+    }
+    // Sort
+    data.sort((a, b) => {
+      let va: any = a[leapsSortKey as keyof LeapsScannerEntry];
+      let vb: any = b[leapsSortKey as keyof LeapsScannerEntry];
+      if (typeof va === "string") va = va.toLowerCase();
+      if (typeof vb === "string") vb = vb.toLowerCase();
+      if (va < vb) return leapsSortDir === "asc" ? -1 : 1;
+      if (va > vb) return leapsSortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return data;
+  }, [leapsScanner, leapsFilterTicker, leapsFilterSignal, leapsFilterMinSpikes, leapsSortKey, leapsSortDir]);
+
+  const handleLeapsSort = (key: string) => {
+    if (leapsSortKey === key) {
+      setLeapsSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setLeapsSortKey(key);
+      setLeapsSortDir("desc");
+    }
+  };
+
+  const thStyle: React.CSSProperties = {
+    padding: "6px 8px",
+    textAlign: "right",
+    color: "#888",
+    cursor: "pointer",
+    userSelect: "none",
+    borderBottom: "1px solid #333",
+  };
 
   const dictToArray = useCallback(
     (dict: Record<string, number> | undefined, dates: string[]): (number | null)[] => {
@@ -430,24 +485,86 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {leapsScannerLoading ? (
+                  {leapsScannerLoading ? (
                       <p style={{ color: "#888", fontFamily: "monospace" }}>Scanning S&P 100 for LEAPS anomalies… (~10s)</p>
                     ) : leapsScanner.length ? (
+                      <>
+                        {/* Filter & Sort Controls */}
+                        <div style={{ display: "flex", gap: 12, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}>
+                          <input
+                            type="text"
+                            placeholder="Search ticker…"
+                            value={leapsFilterTicker}
+                            onChange={(e) => setLeapsFilterTicker(e.target.value)}
+                            style={{
+                              background: "#0a0a0a", border: "1px solid #333", borderRadius: 4,
+                              padding: "4px 8px", color: "#e5e7eb", fontFamily: "monospace", fontSize: 11,
+                              width: 120,
+                            }}
+                          />
+                          <select
+                            value={leapsFilterSignal}
+                            onChange={(e) => setLeapsFilterSignal(e.target.value)}
+                            style={{
+                              background: "#0a0a0a", border: "1px solid #333", borderRadius: 4,
+                              padding: "4px 8px", color: "#e5e7eb", fontFamily: "monospace", fontSize: 11,
+                            }}
+                          >
+                            <option value="all">All Signals</option>
+                            <option value="Bullish">Bullish</option>
+                            <option value="Bearish">Bearish</option>
+                            <option value="Neutral">Neutral</option>
+                          </select>
+                          <select
+                            value={leapsFilterMinSpikes}
+                            onChange={(e) => setLeapsFilterMinSpikes(Number(e.target.value))}
+                            style={{
+                              background: "#0a0a0a", border: "1px solid #333", borderRadius: 4,
+                              padding: "4px 8px", color: "#e5e7eb", fontFamily: "monospace", fontSize: 11,
+                            }}
+                          >
+                            <option value={0}>Min 0 Spikes</option>
+                            <option value={1}>Min 1 Spike</option>
+                            <option value={3}>Min 3 Spikes</option>
+                            <option value={5}>Min 5 Spikes</option>
+                          </select>
+                          <span style={{ color: "#555", fontFamily: "monospace", fontSize: 10 }}>
+                            {filteredLeapsScanner.length} / {leapsScanner.length} results
+                          </span>
+                        </div>
+
                       <table style={{
                         width: "100%", borderCollapse: "collapse", fontFamily: "monospace", fontSize: 11,
                       }}>
                         <thead>
                           <tr>
-                            <th style={{ padding: "6px 8px", textAlign: "left", color: "#888" }}>Ticker</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: "#888" }}>LEAPS Vol</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: "#888" }}>C/P</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: "#888" }}>Spikes</th>
-                            <th style={{ padding: "6px 8px", textAlign: "left", color: "#888" }}>Top Spike</th>
-                            <th style={{ padding: "6px 8px", textAlign: "right", color: "#888" }}>Signal</th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("ticker")}>
+                              Ticker {leapsSortKey === "ticker" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("total_leaps_vol")}>
+                              LEAPS Vol {leapsSortKey === "total_leaps_vol" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("call_put_ratio")}>
+                              C/P {leapsSortKey === "call_put_ratio" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("unusual_count")}>
+                              Spikes {leapsSortKey === "unusual_count" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
+                            <th style={thStyle}>Call Vol</th>
+                            <th style={thStyle}>Put Vol</th>
+                            <th style={thStyle}>Exp</th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("nearest_leaps_expiry")}>
+                              Nearest Expiry {leapsSortKey === "nearest_leaps_expiry" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
+                            <th style={thStyle}>Top Strike</th>
+                            <th style={thStyle}>Top IV</th>
+                            <th style={thStyle} onClick={() => handleLeapsSort("signal")}>
+                              Signal {leapsSortKey === "signal" ? (leapsSortDir === "asc" ? "↑" : "↓") : ""}
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
-                          {leapsScanner.map((entry, i) => {
+                          {filteredLeapsScanner.map((entry, i) => {
                             const spike = entry.top_spike;
                             const handleClickTicker = async () => {
                               setActiveTab("backtest");
@@ -458,7 +575,6 @@ export default function Home() {
                               setFundamentals(null);
                               try {
                                 const ticker = entry.ticker;
-                                // Get full date range for this ticker
                                 let startDate, endDate;
                                 try {
                                   const range = await fetchTickerRange(ticker);
@@ -492,6 +608,7 @@ export default function Home() {
                                 setIsLoading(false);
                               }
                             };
+                            const signalColor = entry.call_put_ratio > 1.5 ? "#22c55e" : entry.call_put_ratio < 0.67 ? "#ef4444" : "#f59e0b";
                             return (
                               <tr
                                 key={i}
@@ -501,18 +618,19 @@ export default function Home() {
                               >
                                 <td style={{ padding: "6px 8px", color: "#f97316", fontWeight: 700 }}>{entry.ticker}</td>
                                 <td style={{ padding: "6px 8px", textAlign: "right", color: "#e5e7eb" }}>{entry.total_leaps_vol.toLocaleString()}</td>
-                                <td style={{
-                                  padding: "6px 8px", textAlign: "right",
-                                  color: entry.call_put_ratio > 1 ? "#22c55e" : "#ef4444",
-                                }}>{entry.call_put_ratio.toFixed(2)}</td>
-                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#f97316" }}>{entry.unusual_count}</td>
-                                <td style={{ padding: "6px 8px", color: "#888", fontSize: 10 }}>
-                                  {spike?.type} {spike?.expiry} K={spike?.strike?.toFixed(0)} vol={spike?.volume?.toLocaleString()} voi={spike?.vol_oi_ratio}
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: entry.call_put_ratio > 1 ? "#22c55e" : "#ef4444" }}>
+                                  {entry.call_put_ratio.toFixed(2)}
                                 </td>
-                                <td style={{
-                                  padding: "6px 8px", textAlign: "right", fontWeight: 700,
-                                  color: entry.call_put_ratio > 1.5 ? "#22c55e" : entry.call_put_ratio < 0.67 ? "#ef4444" : "#f59e0b",
-                                }}>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#f97316" }}>{entry.unusual_count}</td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#22c55e" }}>{entry.total_leaps_call_vol.toLocaleString()}</td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#ef4444" }}>{entry.total_leaps_put_vol.toLocaleString()}</td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#888" }}>{entry.leaps_expiries_count}</td>
+                                <td style={{ padding: "6px 8px", color: "#888" }}>{entry.nearest_leaps_expiry || "—"}</td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#e5e7eb" }}>{spike?.strike?.toFixed(0) || "—"}</td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", color: "#e5e7eb" }}>
+                                  {spike?.impliedVolatility ? `${(spike.impliedVolatility * 100).toFixed(1)}%` : "—"}
+                                </td>
+                                <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 700, color: signalColor }}>
                                   {entry.call_put_ratio > 1.5 ? "Bullish" : entry.call_put_ratio < 0.67 ? "Bearish" : "Neutral"}
                                 </td>
                               </tr>
@@ -520,6 +638,7 @@ export default function Home() {
                           })}
                         </tbody>
                       </table>
+                      </>
                     ) : !leapsScannerLoading ? (
                       <p style={{ color: "#555", fontFamily: "monospace", fontSize: 10 }}>
                         No LEAPS anomalies found. Click Rescan to try again.
