@@ -307,7 +307,7 @@ export const DEFAULT_SCAN_TICKERS = [
 
 export async function fetchOptionsFlow(ticker: string): Promise<OptionsFlowResponse> {
   const cacheKey = `options-flow:${ticker.toUpperCase()}`;
-  const cached = getCached(cacheKey, 300_000); // 5 min
+  const cached = getCached(cacheKey, 600_000); // 10 min
   if (cached) return cached;
   const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/options-flow`);
   if (!res.ok) {
@@ -335,7 +335,7 @@ export async function fetchLeapsScanner(
   min_spikes: number = 1,
 ): Promise<LeapsScannerResponse> {
   const cacheKey = `leaps-scanner:${max_tickers}:${min_spikes}`;
-  const cached = getCached(cacheKey, 120_000); // 2 min
+  const cached = getCached(cacheKey, 600_000); // 10 min
   if (cached) return cached;
   const res = await fetchWithRetry(
     `${API_BASE}/api/leaps/scanner?max_tickers=${encodeURIComponent(String(max_tickers))}&min_spikes=${encodeURIComponent(String(min_spikes))}`
