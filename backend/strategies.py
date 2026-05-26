@@ -3,9 +3,9 @@ Strategy module using vectorbt.
 Implements SMA Crossover, EMA Crossover, Bollinger Bands, RSI, and MACD.
 """
 
-import vectorbt as vbt
 import pandas as pd
 import numpy as np
+import vectorbt as vbt
 
 
 def run_sma_crossover(
