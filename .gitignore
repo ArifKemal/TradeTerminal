@@ -50,6 +50,7 @@ build/
 # --- Markdown (sadece README.md commitli) ---
 *.md
 !README.md
+!PROJECT.md
 
 # --- Misc ---
 *.bak
