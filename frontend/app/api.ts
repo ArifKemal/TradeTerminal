@@ -1,5 +1,42 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// ── Fetch with retry + timeout ────────────────────────────────────────
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 2,
+  timeout = 120000
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(id);
+      return res;
+    } catch (err: any) {
+      const isLast = i === retries;
+      const isTimeout = err?.name === "AbortError";
+      if (isLast) {
+        clearTimeout(id);
+        throw isTimeout
+          ? new Error("Request timed out. The server may be starting up, please try again.")
+          : err;
+      }
+      // Wait before retry (cold start on Render can take 30-60s)
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  throw new Error("Unreachable");
+}
+
+// ── Types ──────────────────────────────────────────────────────────────
+
 export interface BacktestRequest {
   ticker: string;
   start_date: string;
@@ -88,8 +125,6 @@ export interface BacktestResponse {
   };
 }
 
-// ── Options Flow ──────────────────────────────────────────────────────
-
 export interface OptionsFlowResponse {
   ticker: string;
   as_of: string;
@@ -139,8 +174,6 @@ export interface OptionStrike {
 
 export interface UnusualActivity extends OptionStrike {}
 
-// ── LEAPS Board (22 ticker statik liste) ──────────────────────────────
-
 export interface LeapsBoardEntry {
   ticker: string;
   has_leaps: boolean;
@@ -158,8 +191,6 @@ export interface LeapsBoardResponse {
   scan_tickers: string[];
   results: LeapsBoardEntry[];
 }
-
-// ── LEAPS Scanner (S&P 100 concurrent tarama) ─────────────────────────
 
 export interface LeapsScannerSpike {
   type: string;
@@ -196,48 +227,6 @@ export interface LeapsScannerResponse {
     scan_time_sec: number;
     scanned_at: string;
   };
-}
-
-// ── Fetch Functions ───────────────────────────────────────────────────
-
-export const DEFAULT_SCAN_TICKERS = [
-  "AAPL","MSFT","GOOGL","AMZN","NVDA","TSLA","META",
-  "SPY","QQQ","IWM","AMD","INTC","PLTR","COIN",
-  "JPM","BAC","GS","JNJ","PFE","UNH","XOM","CVX",
-];
-
-export async function fetchOptionsFlow(ticker: string): Promise<OptionsFlowResponse> {
-  const res = await fetch(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/options-flow`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-export async function fetchLeapsBoard(limit: number = 15): Promise<LeapsBoardResponse> {
-  const res = await fetch(
-    `${API_BASE}/api/options-flow/leaps-board?limit=${encodeURIComponent(String(limit))}`
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
-}
-
-export async function fetchLeapsScanner(
-  max_tickers: number = 100,
-  min_spikes: number = 1,
-): Promise<LeapsScannerResponse> {
-  const res = await fetch(
-    `${API_BASE}/api/leaps/scanner?max_tickers=${encodeURIComponent(String(max_tickers))}&min_spikes=${encodeURIComponent(String(min_spikes))}`
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(err.detail || `HTTP ${res.status}`);
-  }
-  return res.json();
 }
 
 export interface CompareResponse {
@@ -277,55 +266,6 @@ export interface CompareResponse {
   }>;
 }
 
-export async function fetchStrategies(): Promise<StrategyInfo[]> {
-  const res = await fetch(`${API_BASE}/api/strategies`);
-  if (!res.ok) throw new Error("Failed to load strategies");
-  const data = await res.json();
-  return data.strategies;
-}
-
-export async function runBacktest(request: BacktestRequest): Promise<BacktestResponse> {
-  const res = await fetch(`${API_BASE}/api/backtest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(error.detail || `HTTP ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function compareStrategies(request: BacktestRequest): Promise<CompareResponse> {
-  const res = await fetch(`${API_BASE}/api/compare`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: "Unknown error" }));
-    throw new Error(error.detail || `HTTP ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function healthCheck(): Promise<{ status: string; version: string }> {
-  const res = await fetch(`${API_BASE}/api/health`);
-  if (!res.ok) throw new Error("Backend unavailable");
-  return res.json();
-}
-
-export async function fetchTickerRange(ticker: string): Promise<{ earliest: string; latest: string; data_points: number }> {
-  const res = await fetch(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/range`);
-  if (!res.ok) throw new Error(`No data for ${ticker}`);
-  return res.json();
-}
-
 export interface FundamentalsData {
   ticker: string;
   company: { name?: string; sector?: string; industry?: string; summary?: string };
@@ -346,8 +286,99 @@ export interface FundamentalsData {
   };
 }
 
+// ── Fetch Functions ───────────────────────────────────────────────────
+
+export const DEFAULT_SCAN_TICKERS = [
+  "AAPL","MSFT","GOOGL","AMZN","NVDA","TSLA","META",
+  "SPY","QQQ","IWM","AMD","INTC","PLTR","COIN",
+  "JPM","BAC","GS","JNJ","PFE","UNH","XOM","CVX",
+];
+
+export async function fetchOptionsFlow(ticker: string): Promise<OptionsFlowResponse> {
+  const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/options-flow`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchLeapsBoard(limit: number = 15): Promise<LeapsBoardResponse> {
+  const res = await fetchWithRetry(
+    `${API_BASE}/api/options-flow/leaps-board?limit=${encodeURIComponent(String(limit))}`
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchLeapsScanner(
+  max_tickers: number = 100,
+  min_spikes: number = 1,
+): Promise<LeapsScannerResponse> {
+  const res = await fetchWithRetry(
+    `${API_BASE}/api/leaps/scanner?max_tickers=${encodeURIComponent(String(max_tickers))}&min_spikes=${encodeURIComponent(String(min_spikes))}`
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(err.detail || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchStrategies(): Promise<StrategyInfo[]> {
+  const res = await fetchWithRetry(`${API_BASE}/api/strategies`);
+  if (!res.ok) throw new Error("Failed to load strategies");
+  const data = await res.json();
+  return data.strategies;
+}
+
+export async function runBacktest(request: BacktestRequest): Promise<BacktestResponse> {
+  const res = await fetchWithRetry(`${API_BASE}/api/backtest`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  }, 3, 180000); // 3 retries, 180s timeout for backtest
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(error.detail || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function compareStrategies(request: BacktestRequest): Promise<CompareResponse> {
+  const res = await fetchWithRetry(`${API_BASE}/api/compare`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  }, 3, 180000);
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Unknown error" }));
+    throw new Error(error.detail || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function healthCheck(): Promise<{ status: string; version: string }> {
+  const res = await fetchWithRetry(`${API_BASE}/api/health`, {}, 3, 30000);
+  if (!res.ok) throw new Error("Backend unavailable");
+  return res.json();
+}
+
+export async function fetchTickerRange(ticker: string): Promise<{ earliest: string; latest: string; data_points: number }> {
+  const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/range`);
+  if (!res.ok) throw new Error(`No data for ${ticker}`);
+  return res.json();
+}
+
 export async function fetchFundamentals(ticker: string): Promise<FundamentalsData> {
-  const res = await fetch(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/fundamentals`);
+  const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/fundamentals`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
     throw new Error(err.detail || `HTTP ${res.status}`);
