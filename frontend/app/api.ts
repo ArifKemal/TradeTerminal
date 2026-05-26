@@ -1,5 +1,16 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// ── Simple in-memory cache ───────────────────────────────────────────
+const _cache: Record<string, { data: any; ts: number }> = {};
+function getCached(key: string, ttlMs: number): any {
+  const entry = _cache[key];
+  if (entry && Date.now() - entry.ts < ttlMs) return entry.data;
+  return null;
+}
+function setCache(key: string, data: any) {
+  _cache[key] = { data, ts: Date.now() };
+}
+
 // ── Fetch with retry + timeout ────────────────────────────────────────
 
 async function fetchWithRetry(
@@ -295,12 +306,17 @@ export const DEFAULT_SCAN_TICKERS = [
 ];
 
 export async function fetchOptionsFlow(ticker: string): Promise<OptionsFlowResponse> {
+  const cacheKey = `options-flow:${ticker.toUpperCase()}`;
+  const cached = getCached(cacheKey, 300_000); // 5 min
+  if (cached) return cached;
   const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/options-flow`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
     throw new Error(err.detail || `HTTP ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  setCache(cacheKey, data);
+  return data;
 }
 
 export async function fetchLeapsBoard(limit: number = 15): Promise<LeapsBoardResponse> {
@@ -318,6 +334,9 @@ export async function fetchLeapsScanner(
   max_tickers: number = 100,
   min_spikes: number = 1,
 ): Promise<LeapsScannerResponse> {
+  const cacheKey = `leaps-scanner:${max_tickers}:${min_spikes}`;
+  const cached = getCached(cacheKey, 120_000); // 2 min
+  if (cached) return cached;
   const res = await fetchWithRetry(
     `${API_BASE}/api/leaps/scanner?max_tickers=${encodeURIComponent(String(max_tickers))}&min_spikes=${encodeURIComponent(String(min_spikes))}`
   );
@@ -325,7 +344,9 @@ export async function fetchLeapsScanner(
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
     throw new Error(err.detail || `HTTP ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  setCache(cacheKey, data);
+  return data;
 }
 
 export async function fetchStrategies(): Promise<StrategyInfo[]> {
@@ -378,10 +399,15 @@ export async function fetchTickerRange(ticker: string): Promise<{ earliest: stri
 }
 
 export async function fetchFundamentals(ticker: string): Promise<FundamentalsData> {
+  const cacheKey = `fundamentals:${ticker.toUpperCase()}`;
+  const cached = getCached(cacheKey, 600_000); // 10 min
+  if (cached) return cached;
   const res = await fetchWithRetry(`${API_BASE}/api/ticker/${encodeURIComponent(ticker)}/fundamentals`);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
     throw new Error(err.detail || `HTTP ${res.status}`);
   }
-  return res.json();
+  const data = await res.json();
+  setCache(cacheKey, data);
+  return data;
 }
