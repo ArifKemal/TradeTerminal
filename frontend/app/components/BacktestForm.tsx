@@ -290,9 +290,9 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
         <h3 className="text-xs text-[var(--accent-orange)] uppercase tracking-wider mb-3">
           Indicators
         </h3>
-        <div className="grid grid-cols-4 gap-3 mb-4">
-          <div>
-            <label className={labelClass}>RSI Period</label>
+        <div className="grid grid-cols-4 gap-3 mb-4 items-end">
+          <div className="flex flex-col">
+            <label className={labelClass + " min-h-[2.5rem]"}>RSI Period</label>
             <input
               type="number"
               value={config.rsi_window}
@@ -302,8 +302,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
               className={inputClass}
             />
           </div>
-          <div>
-            <label className={labelClass}>MACD Fast</label>
+          <div className="flex flex-col">
+            <label className={labelClass + " min-h-[2.5rem]"}>MACD Fast</label>
             <input
               type="number"
               value={config.macd_fast}
@@ -313,8 +313,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
               className={inputClass}
             />
           </div>
-          <div>
-            <label className={labelClass}>MACD Slow</label>
+          <div className="flex flex-col">
+            <label className={labelClass + " min-h-[2.5rem]"}>MACD Slow</label>
             <input
               type="number"
               value={config.macd_slow}
@@ -324,8 +324,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
               className={inputClass}
             />
           </div>
-          <div>
-            <label className={labelClass}>MACD Signal</label>
+          <div className="flex flex-col">
+            <label className={labelClass + " min-h-[2.5rem]"}>MACD Signal</label>
             <input
               type="number"
               value={config.macd_signal}
