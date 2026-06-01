@@ -100,17 +100,57 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     setLoadingRange(true);
     try {
       const range = await fetchTickerRange(t);
+      const maxDays = INTERVAL_MAX_DAYS[config.interval] ?? 99999;
+      let start = range.earliest.split("T")[0];
+      if (maxDays < 99999) {
+        const end = range.latest.split("T")[0];
+        const endDate = new Date(end);
+        const minStart = new Date(endDate);
+        minStart.setDate(minStart.getDate() - maxDays);
+        const minStartStr = minStart.toISOString().split("T")[0];
+        start = start < minStartStr ? minStartStr : start;
+      }
       setConfig((prev) => ({
         ...prev,
-        start_date: range.earliest.split("T")[0],
+        start_date: start,
         end_date: range.latest.split("T")[0],
       }));
     } catch {}
     setLoadingRange(false);
   };
 
+  // yfinance max lookback per interval
+  const INTERVAL_MAX_DAYS: Record<string, number> = {
+    "1m": 7,
+    "5m": 60,
+    "15m": 60,
+    "30m": 60,
+    "1h": 730,
+    "1d": 99999,
+    "1wk": 99999,
+    "1mo": 99999,
+  };
+
+  const clampStartDate = (interval: string, start: string, end: string): string => {
+    const maxDays = INTERVAL_MAX_DAYS[interval] ?? 99999;
+    if (maxDays >= 99999) return start;
+    const endDate = new Date(end);
+    const minStart = new Date(endDate);
+    minStart.setDate(minStart.getDate() - maxDays);
+    const minStartStr = minStart.toISOString().split("T")[0];
+    return start < minStartStr ? minStartStr : start;
+  };
+
   const handleChange = (field: keyof BacktestConfig, value: string | number) => {
-    setConfig((prev) => ({ ...prev, [field]: value }));
+    if (field === "interval") {
+      setConfig((prev) => {
+        const newInterval = value as string;
+        const newStart = clampStartDate(newInterval, prev.start_date, prev.end_date);
+        return { ...prev, interval: newInterval, start_date: newStart };
+      });
+    } else {
+      setConfig((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -186,6 +226,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             type="date"
             value={config.start_date}
             onChange={(e) => handleChange("start_date", e.target.value)}
+            min={clampStartDate(config.interval, "1900-01-01", config.end_date)}
+            max={config.end_date}
             className={inputClass}
           />
         </div>
@@ -195,6 +237,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             type="date"
             value={config.end_date}
             onChange={(e) => handleChange("end_date", e.target.value)}
+            min={config.start_date}
+            max={new Date().toISOString().split("T")[0]}
             className={inputClass}
           />
         </div>
