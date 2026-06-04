@@ -1,3 +1,13 @@
+---
+title: TradeTerminal
+emoji: ⚡
+colorFrom: black
+colorTo: orange
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 <div align="center">
 
 # ⚡ TradeTerminal (HERMES)
