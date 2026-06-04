@@ -1,8 +1,8 @@
 ---
 title: TradeTerminal
 emoji: ⚡
-colorFrom: black
-colorTo: orange
+colorFrom: gray
+colorTo: yellow
 sdk: docker
 app_port: 7860
 pinned: false
