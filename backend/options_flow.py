@@ -147,7 +147,10 @@ def fetch_options_flow(ticker: str) -> dict:
     """
     try:
         stock = yf.Ticker(ticker)
-        expiry_dates = stock.options
+        try:
+            expiry_dates = stock.options
+        except Exception:
+            expiry_dates = None
         if not expiry_dates:
             raise ValueError(f"No options data available for {ticker}")
 
@@ -162,7 +165,10 @@ def fetch_options_flow(ticker: str) -> dict:
 
         for i, exp in enumerate(expiry_dates):
             is_leaps_flag = exp in leaps_expiries
-            chain = stock.option_chain(exp)
+            try:
+                chain = stock.option_chain(exp)
+            except Exception:
+                continue
             expiry_info = _analyze_chain(
                 chain.calls, chain.puts, expiry=exp, is_leaps=is_leaps_flag
             )

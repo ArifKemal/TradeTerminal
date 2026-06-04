@@ -28,7 +28,10 @@ def fetch_ohlcv(
     """
     try:
         asset = yf.Ticker(ticker)
-        df = asset.history(start=start, end=end, interval=interval)
+        try:
+            df = asset.history(start=start, end=end, interval=interval)
+        except Exception:
+            df = pd.DataFrame()
 
         if df.empty:
             raise ValueError(f"No data found for {ticker} in range {start} to {end}")

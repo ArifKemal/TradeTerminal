@@ -52,15 +52,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Simple in-memory cache ──────────────────────────────────────────
-_cache: dict = {}
-_CACHE_TTL = 600  # 10 minutes
+# ── Global Exception Handler ─────────────────────────────────────────
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal error: {str(exc)}"},
+    )
+
+# ── Thread-safe cache ────────────────────────────────────────────────
+from cachetools import TTLCache
+_cache = TTLCache(maxsize=256, ttl=600)  # 10 min, thread-safe
 
 
-def _cached(key: str, ttl: int = _CACHE_TTL):
-    """Decorator-like helper: return cached value or None if expired/missing."""
+def _cached(key: str, ttl: int = 600):
+    """Return cached value or None if expired/missing."""
     entry = _cache.get(key)
-    if entry and time.time() - entry["ts"] < ttl:
+    if entry is not None:
         return entry["data"]
     return None
 
@@ -372,7 +382,12 @@ async def get_ticker_fundamentals(ticker: str):
     try:
         import yfinance as yf
         stock = yf.Ticker(ticker)
-        info = stock.info
+        try:
+            info = stock.info
+        except Exception:
+            info = {}
+        if not info or not isinstance(info, dict):
+            info = {}
 
         def safe(v):
             if v is None or v == "None":

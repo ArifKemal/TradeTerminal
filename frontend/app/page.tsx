@@ -585,9 +585,14 @@ export default function Home() {
                                   const end = new Date();
                                   const start = new Date(end);
                                   start.setFullYear(start.getFullYear() - 1);
-                                  const fmt = (d: Date) => d.toISOString().split("T")[0];
-                                  startDate = fmt(start);
-                                  endDate = fmt(end);
+                                  const toDate = (d: Date) => {
+                                    const y = d.getFullYear();
+                                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                                    const dd = String(d.getDate()).padStart(2, "0");
+                                    return `${y}-${m}-${dd}`;
+                                  };
+                                  startDate = toDate(start);
+                                  endDate = toDate(end);
                                 }
                                 const config: BacktestConfig = {
                                   ticker, start_date: startDate, end_date: endDate,

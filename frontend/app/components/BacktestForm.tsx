@@ -29,12 +29,19 @@ export interface BacktestConfig {
   macd_signal: number;
 }
 
+function toISODate(d: Date): string {
+  // Use local date components to avoid UTC offset shifting the day
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function getDefaultDates() {
   const end = new Date();
   const start = new Date(end);
   start.setFullYear(start.getFullYear() - 1);
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
-  return { start: fmt(start), end: fmt(end) };
+  return { start: toISODate(start), end: toISODate(end) };
 }
 
 const defaults = getDefaultDates();
@@ -107,7 +114,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
         const endDate = new Date(end);
         const minStart = new Date(endDate);
         minStart.setDate(minStart.getDate() - maxDays);
-        const minStartStr = minStart.toISOString().split("T")[0];
+        const minStartStr = toISODate(minStart);
         start = start < minStartStr ? minStartStr : start;
       }
       setConfig((prev) => ({
@@ -137,7 +144,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     const endDate = new Date(end);
     const minStart = new Date(endDate);
     minStart.setDate(minStart.getDate() - maxDays);
-    const minStartStr = minStart.toISOString().split("T")[0];
+    const minStartStr = toISODate(minStart);
     return start < minStartStr ? minStartStr : start;
   };
 
@@ -238,7 +245,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             value={config.end_date}
             onChange={(e) => handleChange("end_date", e.target.value)}
             min={config.start_date}
-            max={new Date().toISOString().split("T")[0]}
+            max={toISODate(new Date())}
             className={inputClass}
           />
         </div>
