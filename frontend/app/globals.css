@@ -82,3 +82,9 @@ input[type="number"]::-webkit-outer-spin-button {
 .js-plotly-plot .plotly .main-svg {
   background: transparent !important;
 }
+
+/* Market ticker smooth scroll */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

@@ -297,7 +297,26 @@ export interface FundamentalsData {
   };
 }
 
+export interface MarketIndex {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  change_pct: number;
+}
+
 // ── Fetch Functions ───────────────────────────────────────────────────
+
+export async function fetchMarketIndices(): Promise<MarketIndex[]> {
+  const cacheKey = "market-indices";
+  const cached = getCached(cacheKey, 1_800_000); // 30 min
+  if (cached) return cached;
+  const res = await fetchWithRetry(`${API_BASE}/api/market-indices`, {}, 2, 30000);
+  if (!res.ok) throw new Error("Failed to fetch market indices");
+  const data = await res.json();
+  setCache(cacheKey, data);
+  return data;
+}
 
 export const DEFAULT_SCAN_TICKERS = [
   "AAPL","MSFT","GOOGL","AMZN","NVDA","TSLA","META",

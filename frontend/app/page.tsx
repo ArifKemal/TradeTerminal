@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import TerminalHeader from "./components/TerminalHeader";
+import MarketTicker from "./components/MarketTicker";
 import BacktestForm, { type BacktestConfig } from "./components/BacktestForm";
 import PriceChart from "./components/PriceChart";
 import IndicatorChart from "./components/IndicatorChart";
@@ -207,6 +208,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <MarketTicker />
       <TerminalHeader status={status} />
 
       <main className="flex-1 p-6">

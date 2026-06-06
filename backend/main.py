@@ -540,6 +540,54 @@ async def leaps_scanner(max_tickers: int = 100, min_spikes: int = 1):
         raise HTTPException(status_code=500, detail=f"LEAPS scanner error: {str(e)}")
 
 
+@app.get("/api/market-indices")
+async def get_market_indices():
+    """
+    Fetch real-time data for major market indices.
+    Returns price, change, and percent change for each index.
+    Cached for 60 seconds.
+    """
+    cache_key = "market-indices"
+    cached = _cached(cache_key, ttl=1800)
+    if cached:
+        return cached
+
+    import yfinance as yf
+
+    indices = {
+        "^GSPC": "S&P 500",
+        "^IXIC": "NASDAQ",
+        "^DJI": "DOW",
+        "^RUT": "RUSSELL 2000",
+        "^VIX": "VIX",
+        "^TNX": "10Y TREASURY",
+    }
+
+    results = []
+    for symbol, name in indices.items():
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="2d")
+            if hist.empty or len(hist) < 1:
+                continue
+            latest = hist["Close"].iloc[-1]
+            prev = hist["Close"].iloc[-2] if len(hist) >= 2 else latest
+            change = latest - prev
+            pct = (change / prev) * 100 if prev != 0 else 0
+            results.append({
+                "symbol": symbol,
+                "name": name,
+                "price": round(latest, 2),
+                "change": round(change, 2),
+                "change_pct": round(pct, 2),
+            })
+        except Exception:
+            continue
+
+    _set_cache(cache_key, results)
+    return results
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=300)
