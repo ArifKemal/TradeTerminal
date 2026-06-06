@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { fetchMarketIndices, type MarketIndex } from "../api";
 
 function formatPrice(price: number, symbol: string): string {
@@ -25,7 +25,7 @@ function IndexPill({ index }: { index: MarketIndex }) {
         borderRadius: 3,
         background: "rgba(255,255,255,0.03)",
         borderLeft: `2px solid ${color}`,
-        marginRight: 12,
+        marginRight: 16,
         whiteSpace: "nowrap",
         fontFamily: "monospace",
         fontSize: 11,
@@ -43,9 +43,6 @@ function IndexPill({ index }: { index: MarketIndex }) {
 export default function MarketTicker() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
   const [error, setError] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const posRef = useRef(0);
-  const animRef = useRef<number>(0);
 
   useEffect(() => {
     const load = async () => {
@@ -58,34 +55,14 @@ export default function MarketTicker() {
       }
     };
     load();
-    const interval = setInterval(load, 1_800_000); // 30 min
+    const interval = setInterval(load, 1_800_000);
     return () => clearInterval(interval);
   }, []);
 
-  // Smooth scroll animation
-  useEffect(() => {
-    if (indices.length === 0) return;
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const speed = 0.5; // px per frame
-    const animate = () => {
-      posRef.current -= speed;
-      // Reset when scrolled through half (duplicated content)
-      if (Math.abs(posRef.current) >= el.scrollWidth / 2) {
-        posRef.current = 0;
-      }
-      el.style.transform = `translateX(${posRef.current}px)`;
-      animRef.current = requestAnimationFrame(animate);
-    };
-    animRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animRef.current);
-  }, [indices]);
-
   if (error || indices.length === 0) return null;
 
-  // Duplicate for seamless loop
-  const doubled = [...indices, ...indices];
+  // Triple the content for seamless looping
+  const tripled = [...indices, ...indices, ...indices];
 
   return (
     <div
@@ -112,22 +89,17 @@ export default function MarketTicker() {
           display: "flex",
           alignItems: "center",
           background: "#0a0a0a",
+          zIndex: 1,
         }}
       >
         ◉ LIVE
       </div>
-      <div
-        ref={scrollRef}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          paddingLeft: 12,
-          willChange: "transform",
-        }}
-      >
-        {doubled.map((idx, i) => (
-          <IndexPill key={`${idx.symbol}-${i}`} index={idx} />
-        ))}
+      <div className="ticker-wrap">
+        <div className="ticker-content">
+          {tripled.map((idx, i) => (
+            <IndexPill key={`${idx.symbol}-${i}`} index={idx} />
+          ))}
+        </div>
       </div>
     </div>
   );

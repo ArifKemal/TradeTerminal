@@ -83,8 +83,23 @@ input[type="number"]::-webkit-outer-spin-button {
   background: transparent !important;
 }
 
-/* Market ticker smooth scroll */
+/* Market ticker */
+.ticker-wrap {
+  overflow: hidden;
+  flex: 1;
+}
+
+.ticker-content {
+  display: inline-flex;
+  align-items: center;
+  animation: ticker-scroll 30s linear infinite;
+}
+
+.ticker-content:hover {
+  animation-play-state: paused;
+}
+
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(-33.333%); }
 }
