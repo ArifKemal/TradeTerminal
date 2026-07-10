@@ -30,11 +30,30 @@ export interface BacktestConfig {
 }
 
 function toISODate(d: Date): string {
-  // Use local date components to avoid UTC offset shifting the day
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// Parse various date formats (MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, etc.) to ISO
+function parseToISODate(value: string): string {
+  const v = value.trim();
+  if (!v) return "";
+  // Already ISO?
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  // MM/DD/YYYY or DD/MM/YYYY
+  const parts = v.split(/[\/\-\.]/);
+  if (parts.length === 3) {
+    const [a, b, c] = parts.map(Number);
+    // Heuristic: if first part > 12, it's DD/MM/YYYY
+    if (a > 12 && b <= 12) {
+      return `${c}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
+    }
+    // Otherwise assume MM/DD/YYYY
+    return `${c}-${String(a).padStart(2, "0")}-${String(b).padStart(2, "0")}`;
+  }
+  return v; // fallback, let browser handle
 }
 
 function getDefaultDates() {
@@ -64,18 +83,26 @@ const defaultConfig: BacktestConfig = {
   macd_signal: 9,
 };
 
-export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLoading, isComparing }: BacktestFormProps) {
+export default function BacktestForm({
+  onSubmit,
+  onCompare,
+  onTickerChange,
+  isLoading,
+  isComparing,
+}: BacktestFormProps) {
   const [config, setConfig] = useState<BacktestConfig>(defaultConfig);
   const [strategies, setStrategies] = useState<StrategyInfo[]>([]);
 
   useEffect(() => {
     fetchStrategies()
       .then(setStrategies)
-      .catch(() => setStrategies([
-        { id: "sma", name: "SMA Crossover", description: "", params: {} },
-        { id: "ema", name: "EMA Crossover", description: "", params: {} },
-        { id: "bollinger", name: "Bollinger Bands", description: "", params: {} },
-      ]));
+      .catch(() =>
+        setStrategies([
+          { id: "sma", name: "SMA Crossover", description: "", params: {} },
+          { id: "ema", name: "EMA Crossover", description: "", params: {} },
+          { id: "bollinger", name: "Bollinger Bands", description: "", params: {} },
+        ])
+      );
   }, []);
 
   // Auto-fetch full available date range when ticker changes
@@ -89,10 +116,14 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
       setLoadingRange(true);
       fetchTickerRange(t)
         .then((range) => {
+          const apiEnd = range.latest.split("T")[0];
+          const today = toISODate(new Date());
+          // Clamp end_date to today (prevent future dates from Yahoo Finance)
+          const clampedEnd = apiEnd < today ? apiEnd : today;
           setConfig((prev) => ({
             ...prev,
             start_date: range.earliest.split("T")[0],
-            end_date: range.latest.split("T")[0],
+            end_date: clampedEnd,
           }));
         })
         .catch(() => {})
@@ -108,9 +139,12 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     try {
       const range = await fetchTickerRange(t);
       const maxDays = INTERVAL_MAX_DAYS[config.interval] ?? 99999;
+      const today = toISODate(new Date());
       let start = range.earliest.split("T")[0];
+      let end = range.latest.split("T")[0];
+      // Clamp end to today
+      if (end > today) end = today;
       if (maxDays < 99999) {
-        const end = range.latest.split("T")[0];
         const endDate = new Date(end);
         const minStart = new Date(endDate);
         minStart.setDate(minStart.getDate() - maxDays);
@@ -120,7 +154,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
       setConfig((prev) => ({
         ...prev,
         start_date: start,
-        end_date: range.latest.split("T")[0],
+        end_date: end,
       }));
     } catch {}
     setLoadingRange(false);
@@ -138,7 +172,11 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     "1mo": 99999,
   };
 
-  const clampStartDate = (interval: string, start: string, end: string): string => {
+  const clampStartDate = (
+    interval: string,
+    start: string,
+    end: string
+  ): string => {
     const maxDays = INTERVAL_MAX_DAYS[interval] ?? 99999;
     if (maxDays >= 99999) return start;
     const endDate = new Date(end);
@@ -148,17 +186,26 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     return start < minStartStr ? minStartStr : start;
   };
 
-  const handleChange = (field: keyof BacktestConfig, value: string | number) => {
-    if (field === "interval") {
-      setConfig((prev) => {
-        const newInterval = value as string;
-        const newStart = clampStartDate(newInterval, prev.start_date, prev.end_date);
-        return { ...prev, interval: newInterval, start_date: newStart };
-      });
-    } else {
-      setConfig((prev) => ({ ...prev, [field]: value }));
-    }
-  };
+  const handleChange = (
+      field: keyof BacktestConfig,
+      value: string | number
+    ) => {
+      // Normalize date inputs to ISO format (handles browser locale formats like MM/DD/YYYY)
+      const normalizedValue =
+        (field === "start_date" || field === "end_date") && typeof value === "string"
+          ? parseToISODate(value)
+          : value;
+
+      if (field === "interval") {
+        setConfig((prev) => {
+          const newInterval = normalizedValue as string;
+          const newStart = clampStartDate(newInterval, prev.start_date, prev.end_date);
+          return { ...prev, interval: newInterval, start_date: newStart };
+        });
+      } else {
+        setConfig((prev) => ({ ...prev, [field]: normalizedValue }));
+      }
+    };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +218,8 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
 
   const inputClass =
     "w-full px-3 py-2 rounded text-sm outline-none transition-colors focus:border-[var(--accent-orange)]";
-  const labelClass = "text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-1 block";
+  const labelClass =
+    "text-xs text-[var(--text-secondary)] uppercase tracking-wider mb-1 block";
 
   const isBollinger = config.strategy === "bollinger";
 
@@ -179,7 +227,9 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
     <form onSubmit={handleSubmit} className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-[var(--accent-orange)]">$</span>
-        <h2 className="text-sm font-bold uppercase tracking-wider">Backtest Configuration</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wider">
+          Backtest Configuration
+        </h2>
       </div>
 
       {/* Row 1: Ticker + Interval */}
@@ -343,7 +393,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
         </h3>
         <div className="grid grid-cols-4 gap-3 mb-4 items-end">
           <div className="flex flex-col">
-            <label className={labelClass + " min-h-[2.5rem]"}>RSI Period</label>
+            <label className={labelClass + " min-h-[2.5rem]"}>{"RSI Period"}</label>
             <input
               type="number"
               value={config.rsi_window}
@@ -354,7 +404,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             />
           </div>
           <div className="flex flex-col">
-            <label className={labelClass + " min-h-[2.5rem]"}>MACD Fast</label>
+            <label className={labelClass + " min-h-[2.5rem]"}>{"MACD Fast"}</label>
             <input
               type="number"
               value={config.macd_fast}
@@ -365,7 +415,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             />
           </div>
           <div className="flex flex-col">
-            <label className={labelClass + " min-h-[2.5rem]"}>MACD Slow</label>
+            <label className={labelClass + " min-h-[2.5rem]"}>{"MACD Slow"}</label>
             <input
               type="number"
               value={config.macd_slow}
@@ -376,7 +426,7 @@ export default function BacktestForm({ onSubmit, onCompare, onTickerChange, isLo
             />
           </div>
           <div className="flex flex-col">
-            <label className={labelClass + " min-h-[2.5rem]"}>MACD Signal</label>
+            <label className={labelClass + " min-h-[2.5rem]"}>{"MACD Signal"}</label>
             <input
               type="number"
               value={config.macd_signal}
